@@ -10,6 +10,10 @@
 #### git 사용기간 : 2026.10.17 ~ 10.18 (2026.10.18  이후에는 접속 불가)
 <br>
 
+#### 구글 공유드라이브 :
+https://drive.google.com/drive/folders/1DdyPrPw_HXG6IYlO7_mg-5BH0IYzpmnV
+<br>
+
 #### 강사: 고병화
 #### E-mail : digicope@aicore.co.kr
 <br>
