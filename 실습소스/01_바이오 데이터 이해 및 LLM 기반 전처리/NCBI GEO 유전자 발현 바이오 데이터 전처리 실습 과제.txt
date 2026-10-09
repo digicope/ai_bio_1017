@@ -1,0 +1,23 @@
+[실습 과제] : 바이오 데이터 이해 및 LLM 기반 전처리
+
+GSM827073 Agilent 유전자 발현 데이터를 분석하고
+머신러닝 분석에 사용할 수 있는 CSV 데이터로 전처리하시오.
+데이터 압축파일인 GSM827073_US10283824_252800412039_S01_GE1_107_Sep09_1_2.txt.gz파일을 압축을 풀어 사용한다
+(데이터 출처 url: https://ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM827073)
+
+조건:
+
+1. TXT 파일을 Pandas로 읽는다.
+2. FEATURES 영역을 찾아 DataFrame으로 변환한다.
+3. 전체 Feature 수를 확인한다.
+4. ControlType별 Feature 개수를 확인한다.
+5. ControlType이 0인 biological probe만 추출한다.
+6. gProcessedSignal이 결측인 데이터를 확인한다.
+7. gIsPosAndSignif가 1인 Probe를 추출한다.
+8. gIsWellAboveBG가 1인 Probe를 추출한다.
+9. 발현값이 낮은 Probe를 필터링한다.
+10. SystematicName과 gProcessedSignal만 남긴다.
+11. 발현값에 log2 변환을 적용한다.
+12. 최종 결과를 CSV로 저장한다.
+13. 전처리 전후의 데이터 개수를 비교한다.
+14. 각 단계의 처리 내용을 출력한다.
