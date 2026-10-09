@@ -1,0 +1,180 @@
+================================================================================
+실습 과제: GSE2034 유전자 발현 기반 분류·회귀 모델 파이썬 노트북 구현
+================================================================================
+
+1. 과제 목적
+--------------------------------------------------------------------------------
+NCBI GEO의 공개 유방암 유전자 발현 데이터셋 GSE2034를 이용해,
+원격전이(재발) 여부를 예측하는 분류 모델과, 전이까지 소요 기간(개월)을
+예측하는 회귀 모델을 파이썬 Jupyter 노트북으로 구현한다.
+
+
+2. 사용 데이터
+--------------------------------------------------------------------------------
+- GEO Accession: GSE2034
+- URL: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE2034
+- 논문: Wang Y et al., Lancet, 2005
+  "Gene-expression profiles to predict distant metastasis of
+   lymph-node-negative primary breast cancer."
+- 플랫폼: Affymetrix HG-U133A (GPL96)
+- 샘플: 림프절 음성 원발 유방암 약 286명
+  · 재발 없음(relapse-free) 약 180명
+  · 원격전이 발생 약 106명
+
+다운로드 파일 (NCBI GEO FTP):
+  1) Series Matrix (발현 행렬)
+     https://ftp.ncbi.nlm.nih.gov/geo/series/GSE2nnn/GSE2034/matrix/
+     GSE2034_series_matrix.txt.gz
+  2) SOFT family (임상 파라미터 테이블 포함)
+     https://ftp.ncbi.nlm.nih.gov/geo/series/GSE2nnn/GSE2034/soft/
+     GSE2034_family.soft.gz
+
+임상 테이블(SOFT 내부 "Patient clinical parameters") 주요 컬럼:
+  - GEO accession (GSM ID)
+  - lymph node status
+  - time to relapse or last follow-up (months)
+  - relapse (1=True / 0=False)
+  - ER Status (ER+ / ER-)
+  - Brain relapses
+
+
+3. 구현 요구사항
+--------------------------------------------------------------------------------
+[필수] Jupyter Notebook (.ipynb) 1개 작성
+
+(1) 환경 설정
+    - 필요 라이브러리: numpy, pandas, scikit-learn, matplotlib, seaborn,
+      scipy, joblib, pyarrow(또는 parquet 대안), jupyter
+    - requirements.txt 작성
+    - 난수 시드(random_state) 고정
+    - data/, outputs/ 디렉터리 자동 생성
+
+(2) 데이터 다운로드 및 캐시
+    - Series Matrix / SOFT를 자동 다운로드
+    - 이미 파일이 있으면 재다운로드하지 않음(캐시)
+
+(3) 파싱 및 병합
+    - Series Matrix에서 발현 행렬 파싱 (samples × probes)
+    - SOFT에서 임상 테이블 파싱
+    - 발현 열 순서와 임상 행 순서가 다를 수 있으므로
+      반드시 GSM ID로 조인할 것 (행 위치 조인 금지)
+
+(4) 전처리
+    - 발현값 log2 변환 (0 방지 clip 포함)
+    - 저분산 프로브 제거(예: 중앙값 미만 분산 제거)
+    - train/test 분할 (예: test_size=0.25, stratify=재발 라벨)
+
+(5) 분류 모델 — 원격전이(재발) 예측
+    - 타깃: relapse (0/1)
+    - SelectKBest 등으로 상위 프로브 선택 (예: k=500)
+    - 최소 3개 모델 비교:
+        Logistic Regression, Random Forest, Gradient Boosting
+    - 평가 지표: Accuracy, ROC-AUC, classification_report
+    - 시각화: ROC 곡선, Confusion Matrix
+    - 상위 기여 프로브 목록 및 막대그래프 저장
+    - 최고 성능 모델 joblib 저장
+
+(6) 회귀 모델 — 원격전이까지 개월 수 예측
+    - 재발 환자(relapse=1)만 사용
+      (검열된 추적기간을 섞지 말 것)
+    - 타깃: months (전이까지 개월)
+    - 최소 3개 모델 비교: Ridge, Random Forest, Gradient Boosting
+    - 평가 지표: MAE, RMSE, R²
+    - 시각화: Predicted vs Actual, Residuals
+    - 상위 기여 프로브 및 최고 모델 저장
+
+(7) (선택) 보조 분류
+    - ER+/ER− 이진 분류 추가 학습 및 평가
+
+(8) 결과 요약
+    - outputs/ 에 CSV, PNG, joblib, run_summary.json 저장
+    - README.md에 데이터 설명, 실행 방법, 파이프라인 개요 작성
+
+
+4. 권장 노트북 섹션 구성
+--------------------------------------------------------------------------------
+  1. 환경 설정
+  2. GEO 데이터 다운로드
+  3. 발현 행렬 · 임상 정보 파싱
+  4. 전처리 (log2 · 분산 필터 · train/test 분할)
+  5. 분류 모델 — 원격전이(재발) 예측
+  6. 회귀 모델 — 원격전이까지 개월 수 예측
+  7. (선택) ER 상태 보조 분류
+  8. 결과 요약 저장
+
+
+5. 산출물 목록
+--------------------------------------------------------------------------------
+필수:
+  - GSE2034_classification_regression.ipynb
+  - requirements.txt
+  - README.md
+
+실행 후 생성:
+  - data/
+      GSE2034_series_matrix.txt.gz
+      GSE2034_family.soft.gz
+      GSE2034_clinical.csv (또는 동등 캐시)
+      GSE2034_expression.parquet (또는 동등 캐시)
+  - outputs/
+      classification_metrics.csv
+      regression_metrics.csv
+      top_probes_classification.csv
+      top_probes_regression.csv
+      01_label_distributions.png
+      02_classification_roc_cm.png
+      03_top_probes_classification.png
+      04_regression_pred_resid.png
+      05_top_probes_regression.png
+      best_classifier_*.joblib
+      best_regressor_*.joblib
+      run_summary.json
+
+
+6. 참고 성능 기준 (동일 분할·시드 기준 예시)
+--------------------------------------------------------------------------------
+  - 재발 분류: Accuracy ≈ 0.69, ROC-AUC ≈ 0.71
+  - 전이 기간 회귀(재발군): MAE ≈ 16개월, R² ≈ 0.19
+  - ER 분류: Accuracy ≈ 0.89, ROC-AUC ≈ 0.94
+  ※ 위 수치는 참고용이며, 구현 세부 차이에 따라 달라질 수 있다.
+
+
+7. 주의사항 / 제약
+--------------------------------------------------------------------------------
+  - 교육·연구용 데모이며 임상 진단용이 아님을 명시할 것
+  - 임상 라벨은 SOFT의 Patient clinical parameters를 사용
+    (Series Matrix의 bone relapse 특성만으로 대체하지 말 것)
+  - GSM ID 기준 조인 필수
+  - 회귀는 재발(event) 환자만 사용
+  - 코드는 재실행 가능해야 하며, 데이터는 로컬 캐시할 것
+  - print 포맷은 f-string을 사용할 것
+    (잘못된 예: print(x:.3f)  → 올바른 예: print(f"{x:.3f}"))
+
+
+8. 제출 / 완료 기준
+--------------------------------------------------------------------------------
+  [ ] 노트북이 위에서 아래로 오류 없이 실행된다
+  [ ] 분류·회귀 각각 3개 이상 모델을 비교한다
+  [ ] 평가 지표와 그래프가 outputs/에 저장된다
+  [ ] README에 실행 방법이 안내되어 있다
+  [ ] 임상 용도가 아님을 문서에 명시한다
+
+
+9. AI/자동 생성 시 사용할 프롬프트 요약
+--------------------------------------------------------------------------------
+아래 한 문단을 프롬프트로 사용해도 된다.
+
+---
+https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE2034 데이터 기반
+유전자 발현 분류·회귀 파이썬 노트북을 구현해줘.
+Series Matrix와 SOFT family를 자동 다운로드·파싱하고, GSM ID로 임상과 병합한 뒤
+log2 변환과 피처 선택을 적용한다. 분류는 relapse(원격전이) 예측,
+회귀는 재발 환자의 months(전이까지 개월) 예측으로 하며,
+Logistic/RF/GB 및 Ridge/RF/GB를 비교하고 ROC·혼동행렬·잔차·상위 프로브를
+outputs에 저장한다. requirements.txt와 README도 함께 작성하고,
+교육·연구용임을 명시한다.
+---
+
+================================================================================
+끝
+================================================================================
